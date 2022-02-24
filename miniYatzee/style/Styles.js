@@ -45,6 +45,14 @@ export default StyleSheet.create({
     fontSize: 20,
     marginTop: 10,
   },
+  bonusinfo: {
+    backgroundColor: '#fff',
+    textAlign: 'center',
+    justifyContent: 'center',
+    fontSize: 15,
+    marginTop: 5,
+    marginBottom: 5,
+  },
   row: {
     marginTop: 20,
     padding: 10,
@@ -66,4 +74,9 @@ export default StyleSheet.create({
     color: "#808000",
     fontSize: 20,
   },
+  points: {
+    textAlign: 'center',
+    justifyContent: 'center',
+  }
+
 });
