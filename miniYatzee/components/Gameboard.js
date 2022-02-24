@@ -75,9 +75,6 @@ export default function Gameboard() {
     function selectDice(i) {
         let dices = [...selectedDices];
         dices[i] = selectedDices[i] ? false : true;
-        console.log(row);
-        console.log(valueOfDice(board[i]));
-        console.log([valueOfDice(board[i])].reduce((a, b) => a + b));
         setSelectedDices(dices);
     }
 
@@ -92,12 +89,10 @@ export default function Gameboard() {
         numbers[i] = selectedNumbers[i] ? false : true;
         console.log(i);
         setSelectedNumbers(numbers);
-        //console.log([valueOfDice(board[i])].reduce((a, b) => a + b));
         let cir = [...rowThree];
         cir[i] = countPoints(i);
         setRowThree(cir);
-   
-        console.log(rowThree);
+        setSum(cir.reduce((a, b) => a + b));
     }
 
     //throwing dices
@@ -108,11 +103,10 @@ export default function Gameboard() {
                 board[i] = 'dice-' + randomNumber;
             }
         }
-
-        //console.log(countPoints(2));
         setNbrOfThrowsLeft(nbrOfThrowsLeft-1);
     }
 
+    //counting of points
     function countPoints(number) {
         let counter = 0;
         for (let i = 0; i < NBR_OF_DICES; i++) {
