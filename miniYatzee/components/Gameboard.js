@@ -10,7 +10,7 @@ let boardTwo = [];
 const NBR_OF_CIRCLES = 6;
 const BONUS_POINTS = 63;
 const NBR_OF_TURNS = 6;
-let boardThree = [];
+
 
 export default function Gameboard() {
     
@@ -82,6 +82,9 @@ export default function Gameboard() {
             dices[i] = selectedDices[i] ? false : true;
             setSelectedDices(dices);
         }
+        else {
+            setStatus("You have to throw dices first");
+        }
     }
 
     //value of dice
@@ -101,7 +104,7 @@ export default function Gameboard() {
             setEndOfRound(false);
             return true;
         }
-        else{
+        else {
             return false
         }
       }
@@ -116,6 +119,10 @@ export default function Gameboard() {
 
     //selecting of numbers
     function selectNumber(i) {
+        if (!board.length) {
+            setStatus("Throw 3 times before setting points");
+            return;
+        }
         if(hasDiceNum(i)){
             if(nbrOfThrowsLeft === 0 && !locked[i] && roundCheck(i)){
                 let numbers = [...selectedNumbers];
@@ -132,15 +139,18 @@ export default function Gameboard() {
                 setRowThree(cir);
                 setSum(cir.reduce((a, b) => a + b));
             }
+            else if(nbrOfThrowsLeft === 0 && locked[i] && roundCheck(i)) {
+                setStatus("You already selected points for " + (i));
+            }
+            else {
+                setStatus("Throw 3 times before setting points");
+            }
         }
     }
 
     //throwing dices
     function throwDices() {
         if (nbrOfThrowsLeft === 0 && nbrOfTurnsLeft === 1) {
-            NativeModules.DevSettings.reload();
-        };
-        if (endOfGame) {
             NativeModules.DevSettings.reload();
         }
         if(!nbrOfThrowsLeft)setNbrOfTurnsLeft(nbrOfTurnsLeft-1);
@@ -151,23 +161,21 @@ export default function Gameboard() {
             }
         }
         setNbrOfThrowsLeft(nbrOfThrowsLeft-1);
-
     }
 
-        //choosing of numbers
-        const possibleChoice = () => {
-            for (let i = 0; i < NBR_OF_DICES; i++) {
-                for (let j = 1; j <= NBR_OF_CIRCLES; j++) {
-                    if (j === valueOfDice(board[i]) && !locked[j] ) {
-                        return false;
-                    }
+    //choosing of numbers
+    const possibleChoice = () => {
+        for (let i = 0; i < NBR_OF_DICES; i++) {
+            for (let j = 1; j <= NBR_OF_CIRCLES; j++) {
+                if (j === valueOfDice(board[i]) && !locked[j] ) {
+                    return false;
                 }
             }
-            setEndOfGame(true);
-            setStatus("Game over.");
-            return true;
         }
-    
+        setEndOfGame(true);
+        setStatus("Game over.");
+        return true;
+    }
 
     //counting of points
     function countPoints(number) {
@@ -180,18 +188,17 @@ export default function Gameboard() {
         return counter * number;
     }
 
-    //checking bonus points
+    const restart = () => {
+        setStatus('Select your points before next throw.');
+        if (endOfGame) {
+            NativeModules.DevSettings.reload();
+        }
+    }
+
+    //checking status of game
     function checkGameStatus() {
-        if (board.every((val, i, arr) => val === arr[0]) ) {
-            setStatus('Game over. All points selected.');
-            setSelectedDices(new Array(NBR_OF_DICES).fill(false));
-        }
-        else if (nbrOfThrowsLeft === 0) {
+        if (nbrOfThrowsLeft === 0) {
             setStatus('Select your points.');
-            setSelectedDices(new Array(NBR_OF_DICES).fill(false));
-        }
-        else if (nbrOfTurnsLeft === 0 && nbrOfThrowsLeft === 0) {
-            setStatus('Game over. All points selected.');
             setSelectedDices(new Array(NBR_OF_DICES).fill(false));
         }
         else {
@@ -232,14 +239,13 @@ export default function Gameboard() {
     }, [selected]);
 
 
-
     return(
         <View style={styles.gameboard}>
             <View style={styles.flex}>{row}</View>
             <Text style={styles.gameinfo}>Throws left: {selected?"3":nbrOfThrowsLeft}</Text>
             <Text style={styles.gameinfo}>{status}</Text>
             <Pressable style={styles.button}
-                onPress={() => !endOfRound?throwDices():null}>
+                onPress={() => !endOfRound?throwDices():restart()}>
                     <Text style={styles.buttonText}>
                         {(endOfGame)?"New game":(selected && nbrOfTurnsLeft === 1)?"New game":"Throw dices"}
                     </Text>
