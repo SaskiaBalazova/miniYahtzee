@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Text, View, Pressable } from 'react-native';
+import { Text, View, Pressable, NativeModules} from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import styles from '../style/Styles';
-import { borderBottomColor } from 'react-native/Libraries/Components/View/ReactNativeStyleAttributes';
 
 let board = [];
 const NBR_OF_DICES = 5;
@@ -22,6 +21,11 @@ export default function Gameboard() {
     const [nbrOfTurnsLeft, setNbrOfTurnsLeft] = useState(NBR_OF_TURNS);
     const [sum, setSum] = useState(0);
     const [rowThree, setRowThree] = useState(new Array(NBR_OF_CIRCLES+1).fill(0));
+    const [locked, setLocked] = useState(new Array(NBR_OF_CIRCLES).fill(false));
+    const [endOfRound, setEndOfRound] = useState(false);
+    const [selected, setSelected] = useState(false);
+    const [endOfGame, setEndOfGame] = useState(false);
+    const [bonus, setBonus] = useState('');
 
     //dices
     const row = [];
@@ -73,9 +77,11 @@ export default function Gameboard() {
 
     //selecting of dices
     function selectDice(i) {
-        let dices = [...selectedDices];
-        dices[i] = selectedDices[i] ? false : true;
-        setSelectedDices(dices);
+        if(nbrOfThrowsLeft){
+            let dices = [...selectedDices];
+            dices[i] = selectedDices[i] ? false : true;
+            setSelectedDices(dices);
+        }
     }
 
     //value of dice
@@ -83,20 +89,61 @@ export default function Gameboard() {
         return parseInt(cube.charAt(5));
     }
 
+    function roundCheck(i){
+        let counter = 0;
+        loctemp = locked;
+        for(let i = 1; i <= 6; i++){
+          if(!loctemp[i]){counter = counter + 1}
+        }
+        if(counter === nbrOfTurnsLeft){
+            loctemp[i] = true;
+            setLocked(loctemp);
+            setEndOfRound(false);
+            return true;
+        }
+        else{
+            return false
+        }
+      }
+
+    function hasDiceNum(i){
+        for(let j = 0; j < NBR_OF_DICES; j++){
+            if(i === valueOfDice(board[j])){return true;}
+            
+        }
+        return false;
+    }
+
     //selecting of numbers
     function selectNumber(i) {
-        let numbers = [...selectedNumbers];
-        numbers[i] = selectedNumbers[i] ? false : true;
-        console.log(i);
-        setSelectedNumbers(numbers);
-        let cir = [...rowThree];
-        cir[i] = countPoints(i);
-        setRowThree(cir);
-        setSum(cir.reduce((a, b) => a + b));
+        if(hasDiceNum(i)){
+            if(nbrOfThrowsLeft === 0 && !locked[i] && roundCheck(i)){
+                let numbers = [...selectedNumbers];
+                setSelected(true);
+                setSelectedDices(new Array(NBR_OF_DICES).fill(false));
+                setStatus("Throw dices.");
+                if (nbrOfThrowsLeft === 0 && nbrOfTurnsLeft === 1) {
+                    setStatus('Game over. All points selected.');
+                } 
+                numbers[i] = selectedNumbers[i] ? false : true;
+                setSelectedNumbers(numbers);
+                let cir = [...rowThree];
+                cir[i] = countPoints(i);
+                setRowThree(cir);
+                setSum(cir.reduce((a, b) => a + b));
+            }
+        }
     }
 
     //throwing dices
     function throwDices() {
+        if (nbrOfThrowsLeft === 0 && nbrOfTurnsLeft === 1) {
+            NativeModules.DevSettings.reload();
+        };
+        if (endOfGame) {
+            NativeModules.DevSettings.reload();
+        }
+        if(!nbrOfThrowsLeft)setNbrOfTurnsLeft(nbrOfTurnsLeft-1);
         for (let i = 0; i < NBR_OF_DICES; i++) {
             if (!selectedDices[i]) {
                 let randomNumber = Math.floor(Math.random() * 6 + 1);
@@ -104,7 +151,23 @@ export default function Gameboard() {
             }
         }
         setNbrOfThrowsLeft(nbrOfThrowsLeft-1);
+
     }
+
+        //choosing of numbers
+        const possibleChoice = () => {
+            for (let i = 0; i < NBR_OF_DICES; i++) {
+                for (let j = 1; j <= NBR_OF_CIRCLES; j++) {
+                    if (j === valueOfDice(board[i]) && !locked[j] ) {
+                        return false;
+                    }
+                }
+            }
+            setEndOfGame(true);
+            setStatus("Game over.");
+            return true;
+        }
+    
 
     //counting of points
     function countPoints(number) {
@@ -118,12 +181,9 @@ export default function Gameboard() {
     }
 
     //checking bonus points
-    function checkBonusPoints() {
-        if (board.every((val, i, arr) => val === arr[0]) && nbrOfThrowsLeft > 0) {
-            setStatus('You won');
-        }
-        else if (board.every((val, i, arr) => val === arr[0]) && nbrOfThrowsLeft === 0) {
-            setStatus('You won, game over');
+    function checkGameStatus() {
+        if (board.every((val, i, arr) => val === arr[0]) ) {
+            setStatus('Game over. All points selected.');
             setSelectedDices(new Array(NBR_OF_DICES).fill(false));
         }
         else if (nbrOfThrowsLeft === 0) {
@@ -139,31 +199,53 @@ export default function Gameboard() {
         }
     }
 
-    useEffect(() => {
-        checkBonusPoints();
-        if (nbrOfThrowsLeft === NBR_OF_TURNS) {
-            setStatus('Game has not started. Throw dices.');
+    //checking bonus points
+    function checkBonusPoints() {
+        if (sum >= BONUS_POINTS) {
+            setBonus('You got the bonus!');
         }
+        else {
+            setBonus('You are ' + (BONUS_POINTS - sum) + ' points away from bonus.');   
+        }
+    }
+
+    useEffect(() => {
+        checkGameStatus();
+        if (nbrOfThrowsLeft === NBR_OF_THROWS) {
+            setStatus('Game has not started. Throw dices.');
+        } 
         if (nbrOfThrowsLeft < 0) {
             setNbrOfThrowsLeft(NBR_OF_THROWS-1);
+            setSelected(false);
         }
+        if (nbrOfThrowsLeft === 0) {
+            setEndOfRound(true);
+            possibleChoice();
+        }
+        if (nbrOfThrowsLeft === 0 && nbrOfTurnsLeft === 0) {
+            setStatus('Game over.');
+        } 
     }, [nbrOfThrowsLeft]);
+
+    useEffect(() => {
+        checkBonusPoints();
+    }, [selected]);
+
 
 
     return(
         <View style={styles.gameboard}>
             <View style={styles.flex}>{row}</View>
-            <Text style={styles.gameinfo}>Throws left: {nbrOfThrowsLeft}</Text>
+            <Text style={styles.gameinfo}>Throws left: {selected?"3":nbrOfThrowsLeft}</Text>
             <Text style={styles.gameinfo}>{status}</Text>
             <Pressable style={styles.button}
-                onPress={() => throwDices()}>
+                onPress={() => !endOfRound?throwDices():null}>
                     <Text style={styles.buttonText}>
-                        Throw dices
+                        {(endOfGame)?"New game":(selected && nbrOfTurnsLeft === 1)?"New game":"Throw dices"}
                     </Text>
             </Pressable>
             <Text style={styles.gameinfo}>Total: {sum}</Text>
-            <Text style={styles.bonusinfo}>You are {BONUS_POINTS - sum} points away from bonus.</Text>
-            
+            <Text style={styles.bonusinfo}>{bonus}</Text>
             <View style={styles.flex}>{rowTwo}</View>
         </View>
     )
