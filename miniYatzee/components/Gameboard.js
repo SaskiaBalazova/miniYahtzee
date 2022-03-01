@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, View, Pressable, NativeModules} from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import styles from '../style/Styles';
@@ -37,7 +37,7 @@ export default function Gameboard() {
               <MaterialCommunityIcons
                 name={board[i]}
                 key={"row" + i}
-                size={50}
+                size={75}
                 color={getDiceColor(i)}>
               </MaterialCommunityIcons>
             </Pressable>
@@ -67,7 +67,7 @@ export default function Gameboard() {
               <MaterialCommunityIcons
                 name={boardTwo[i]}
                 key={"rowTwo" + i}
-                size={40}
+                size={60}
                 color={getCircleColor(i)}>
               </MaterialCommunityIcons>
             </Pressable>
@@ -94,7 +94,7 @@ export default function Gameboard() {
 
     function roundCheck(i){
         let counter = 0;
-        loctemp = locked;
+        let loctemp = locked;
         for(let i = 1; i <= 6; i++){
           if(!loctemp[i]){counter = counter + 1}
         }
